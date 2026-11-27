@@ -1,0 +1,12 @@
+@font-face {
+  font-family: "Noto Sans SC UI";
+  src: url("./NotoSansSC-ui.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --izcy-font-sans: "Noto Sans SC UI", "Microsoft YaHei", sans-serif;
+  --izcy-font-weight-regular: 350;
+  --izcy-font-weight-semi-bold: 550;
+}

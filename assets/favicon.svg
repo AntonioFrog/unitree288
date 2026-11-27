@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="舵机支臂">
+  <rect width="48" height="48" rx="14" fill="#3c70ed"/>
+  <g transform="rotate(-32 16.5 29)">
+    <path d="M16.5 21l20.5 2.4a5.6 5.6 0 0 1 0 11.2L16.5 37z" fill="#fff"/>
+    <circle cx="16.5" cy="29" r="9.5" fill="#fff"/>
+    <circle cx="16.5" cy="29" r="6" fill="#dbe7ff"/>
+    <g fill="#2759d3">
+      <circle cx="16.5" cy="29" r="3.9"/>
+      <circle cx="28.2" cy="29" r="2.15"/>
+      <circle cx="36.5" cy="29" r="2.15"/>
+    </g>
+  </g>
+</svg>

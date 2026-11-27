@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#142134" />
+    <meta name="application-name" content="Unitree288 Console" />
+    <title>J288 / S288 单总线调试台</title>
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./assets/font/site.css" />
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <svg class="icon-definitions" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="i-control" viewBox="0 0 24 24"><path d="M12 14V8m-5 7H5l-2 6h18l-2-6h-2"/><circle cx="12" cy="5" r="3"/></symbol>
+      <symbol id="i-limits" viewBox="0 0 24 24"><path d="M5 4v4m0 4v8M12 4v9m0 4v3M19 4v2m0 4v10"/><circle cx="5" cy="10" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="19" cy="8" r="2"/></symbol>
+      <symbol id="i-axis-position" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/></symbol>
+      <symbol id="i-axis-speed" viewBox="0 0 24 24"><path d="M5 19a9 9 0 1 1 14 0M12 14l4-5"/><circle cx="12" cy="14" r="1"/></symbol>
+      <symbol id="i-axis-torque" viewBox="0 0 24 24"><path d="M20 13a8 8 0 1 1-4-8m4-2v6h-6"/></symbol>
+      <symbol id="i-axis-voltage" viewBox="0 0 24 24"><path d="m13 2-8 12h6l-1 8 9-12h-6z"/></symbol>
+      <symbol id="i-axis-temp" viewBox="0 0 24 24"><path d="M9 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0Zm3-6v10"/><path d="M17 6h3m-3 4h2"/></symbol>
+      <symbol id="i-axis-winding" viewBox="0 0 24 24"><path d="M2 15h3V9a2 2 0 0 1 4 0v6h1V9a2 2 0 0 1 4 0v6h1V9a2 2 0 0 1 4 0v6h3"/></symbol>
+    </svg>
+    <div class="console-shell">
+      <header class="topbar">
+        <div class="topbar-row">
+          <div class="topbar-left">
+            <div class="brand">
+              <img class="brand-mark" src="./assets/favicon.svg" alt="" width="34" height="34" />
+              <div><h1>Unitree288</h1><p>J288 / S288 单总线控台</p></div>
+            </div>
+            <div class="connection-actions" role="group" aria-label="设备连接">
+              <span id="conn-badge" class="badge" role="img" aria-label="未连接" title="未连接"></span>
+              <button id="connect" class="btn btn-primary" type="button">连接设备</button>
+            </div>
+          </div>
+          <div class="topbar-log">
+            <div class="console-status" role="group" aria-label="运行状态">
+              <div class="status-lines">
+                <span id="notice" role="status">等待连接</span>
+                <div class="status-summary">
+                  <span id="scan-summary" role="status">尚未扫描</span>
+                  <span id="mock-note" class="hint-warn hidden" title="模拟设备 · 数据仅供演示">模拟设备 · 数据仅供演示</span>
+                </div>
+              </div>
+              <button id="open-log" class="btn btn-tiny" type="button" aria-haspopup="dialog" aria-controls="log-dialog" aria-expanded="false">详情</button>
+            </div>
+            <dialog id="log-dialog" class="console-dialog log-dialog" aria-label="详情">
+              <div class="card-head">
+                <div class="log-tabs" id="log-tabs" role="tablist" aria-label="详情内容">
+                  <button id="log-tab" type="button" role="tab" aria-selected="true" aria-controls="log-panel">操作日志</button>
+                  <button id="diagnostics-tab" type="button" role="tab" aria-selected="false" aria-controls="diagnostics-panel" tabindex="-1">总线诊断</button>
+                </div>
+                <div class="card-actions">
+                  <button id="clear-log" class="btn" type="button">清空</button>
+                  <button id="close-log" class="btn" type="button" autofocus>关闭</button>
+                </div>
+              </div>
+              <p id="log-notice" class="hint" hidden></p>
+              <div id="log-panel" role="tabpanel" aria-labelledby="log-tab" tabindex="0">
+                <ol id="log" class="log"></ol>
+              </div>
+              <div id="diagnostics-panel" role="tabpanel" aria-labelledby="diagnostics-tab" tabindex="0" hidden>
+                <button id="forget-other-ports" class="btn btn-tiny" type="button" hidden>移除其他同型号串口授权</button>
+                <dl id="stats" class="stats">
+                  <div><dt>连接状态</dt><dd id="diagnostics-connection-state" role="status">未连接</dd></div>
+                  <div><dt>已选串口</dt><dd id="port-name">未选择</dd></div>
+                  <div><dt>请求</dt><dd id="st-requests">0</dd></div>
+                  <div><dt>应答</dt><dd id="st-responses">0</dd></div>
+                  <div><dt>实测频率 Hz</dt><dd id="st-loop">0</dd></div>
+                  <div><dt>超时</dt><dd id="st-timeouts">0</dd></div>
+                  <div><dt>在途</dt><dd id="st-pending">0</dd></div>
+                  <div><dt>CRC 错误</dt><dd id="st-crc">0</dd></div>
+                  <div><dt>噪声字节</dt><dd id="st-noise">0</dd></div>
+                  <div><dt>回显帧</dt><dd id="st-echo">0</dd></div>
+                  <div><dt>非匹配应答</dt><dd id="st-mismatch">0</dd></div>
+                  <div><dt>收 / 发字节</dt><dd id="st-bytes">0 / 0</dd></div>
+                  <div><dt>事务延迟 ms</dt><dd id="st-latency">—</dd></div>
+                </dl>
+              </div>
+            </dialog>
+          </div>
+          <div class="topbar-right">
+            <span id="motor-control-label">全局控制</span>
+            <div class="motor-controls" role="group" aria-labelledby="motor-control-label">
+              <button id="arm" class="btn" type="button" aria-pressed="false" title="全部已扫描设备以零输出启动，等待新目标" disabled>FOC</button>
+              <button id="disarm" class="btn" type="button" aria-pressed="false" title="清除运动目标，以零力矩 FOC 继续采样" disabled>卸力</button>
+              <button id="stop-motor" class="btn btn-danger" type="button" aria-pressed="false" title="中止扫描或控制循环，向总线广播 Stop 并逐地址确认" disabled>停止</button>
+            </div>
+          </div>
+        </div>
+        <dialog id="limits-dialog" class="console-dialog limits-dialog" aria-labelledby="limits-title" aria-describedby="limits-hint">
+          <div class="card-head">
+            <h3 id="limits-title">设定值上限</h3>
+            <button id="close-limits" class="btn" type="button">关闭</button>
+          </div>
+          <form id="limits-form">
+            <p id="limits-hint" class="hint">上限适用于单台控制和全局广播。未使能时可应用。</p>
+            <div class="limits-grid">
+              <label class="field">
+                <span>力矩上限 / N·m</span>
+                <input id="lim-tor" name="tor" type="number" min="0.1" max="5" step="0.1" required />
+                <small>范围 0.1–5</small>
+              </label>
+              <label class="field">
+                <span>转速上限 / rad/s</span>
+                <input id="lim-spd" name="spd" type="number" min="0.5" max="15" step="0.5" required />
+                <small>范围 0.5–15</small>
+              </label>
+              <label class="field">
+                <span>刚度上限 Kp</span>
+                <input id="lim-kp" name="kp" type="number" min="0" max="60" step="1" required />
+                <small>范围 0–60</small>
+              </label>
+              <label class="field">
+                <span>阻尼上限 Kd</span>
+                <input id="lim-kd" name="kd" type="number" min="0" max="3" step="0.05" required />
+                <small>范围 0–3</small>
+              </label>
+            </div>
+            <div class="limits-actions"><button id="apply-limits" class="btn btn-primary" type="submit">应用上限</button></div>
+          </form>
+        </dialog>
+      </header>
+
+      <div class="workbench">
+        <aside class="card device-panel" aria-labelledby="device-heading">
+          <div class="monitor-heading device-panel-header">
+            <h2 id="device-heading">设备 <span id="device-count"><span class="stable-number">0</span> 台</span></h2>
+            <div class="device-frequency">
+              <label for="hz">频率</label>
+              <select id="hz" aria-label="控制与采样目标频率" title="每轮控制请求同时读取设备回报。实际循环频率见详情。"></select>
+            </div>
+            <button id="scan" class="btn btn-tiny" disabled>搜索节点</button>
+          </div>
+          <div class="participants" id="device-rows" role="group" aria-label="总线设备">
+            <div class="device-empty">
+              <div class="device-empty-lead">
+                <strong id="device-empty-title">等待设备接入</strong><span id="device-empty-mock">，或 <button id="mock" class="btn btn-tiny" type="button">模拟体验</button></span>
+              </div>
+              <p id="device-empty-hint">连接后会自动发送零力矩扫描帧，请先支撑负载。</p>
+            </div>
+          </div>
+        </aside>
+
+        <main class="workspace" aria-label="操作区">
+          <div class="workspace-content">
+            <section class="control-grid" aria-label="运行控制">
+              <section class="current-device" aria-label="当前设备">
+                <div class="monitor-heading participant-identity">
+                  <div class="participant-heading-main">
+                    <h2 class="participant-title">当前设备</h2>
+                    <button id="open-id-change" class="btn btn-tiny" type="button" aria-haspopup="dialog" aria-controls="id-change-dialog" disabled>修改 ID</button>
+                  </div>
+                  <span class="participant-state">
+                    <span><span>未连接</span><span title="每秒收到的有效设备回报" hidden> · <span class="stable-number">0</span> Hz</span></span>
+                  </span>
+                </div>
+                <div id="current-device-card"></div>
+              </section>
+              <section class="card settings-card">
+                <div class="card-head">
+                  <div class="settings-title">
+                    <h3><svg class="icon" aria-hidden="true"><use href="#i-control"/></svg>运行设定</h3>
+                    <button id="open-limits" class="btn btn-tiny" type="button" aria-haspopup="dialog" aria-controls="limits-dialog"><svg class="icon" aria-hidden="true"><use href="#i-limits"/></svg>设定值上限</button>
+                  </div>
+                  <div class="motion-segment control-scope" role="group" aria-label="控制范围">
+                    <button id="single-control" type="button" aria-pressed="false">单台控制</button>
+                    <button id="broadcast" type="button" aria-pressed="true">全局广播</button>
+                  </div>
+                </div>
+                <div class="control-scroll">
+                  <div class="motion-segment run-mode-segment" role="group" aria-label="运行模式">
+                    <button type="button" data-run-mode="single-turn" aria-pressed="true">单圈位置</button>
+                    <button type="button" data-run-mode="position" aria-pressed="false" tabindex="-1">多圈位置</button>
+                    <button type="button" data-run-mode="velocity" aria-pressed="false" tabindex="-1">速度模式</button>
+                    <button type="button" data-run-mode="manual" aria-pressed="false" tabindex="-1">高级模式</button>
+                  </div>
+
+            <div class="mode-fields" data-mode="position">
+              <div data-position-kind="single-turn">
+              <label class="field target-editor">
+                <span>目标角度</span>
+                <span class="target-value"><input id="single-pos" type="number" min="0" max="360" step="any" value="0" /><span>°</span></span>
+              </label>
+              <label class="field">
+                <input id="pos-angle" type="range" min="0" max="360" step="1" value="0" aria-label="目标角度" />
+                <span class="slider-scale"><span>0°</span><span id="single-travel-position"><span>当前轴</span> <span class="stable-number">—</span></span><span>360°</span></span>
+              </label>
+              <section class="preset-actions" aria-labelledby="single-turn-presets-title">
+                <h4 id="single-turn-presets-title">快捷操作</h4>
+                <div class="preset-row">
+                  <span class="preset-label">绝对角度</span>
+                  <div class="preset-buttons">
+                    <button class="btn btn-tiny" data-go="0">0°</button>
+                    <button class="btn btn-tiny" data-go="90">90°</button>
+                    <button class="btn btn-tiny" data-go="180">180°</button>
+                    <button class="btn btn-tiny" data-go="270">270°</button>
+                  </div>
+                </div>
+              </section>
+              </div>
+              <div data-position-kind="position" hidden>
+              <label id="multi-reference-field" class="field" hidden>
+                <span>广播位置参考</span>
+                <select id="multi-reference">
+                  <option value="absolute">各轴累计位置</option>
+                  <option value="relative">各轴相对位移</option>
+                </select>
+              </label>
+              <label class="field target-editor">
+                <span id="position-goal-label">累计位置</span>
+                <span class="target-value"><input id="set-pos" type="number" step="any" value="0" /><span>rad</span></span>
+              </label>
+              <section class="preset-actions" aria-labelledby="multi-turn-presets-title">
+                <h4 id="multi-turn-presets-title">快捷操作</h4>
+                <div class="preset-row">
+                  <span class="preset-label">相对转动</span>
+                  <div class="preset-buttons">
+                    <button class="btn btn-tiny" data-rel="90">顺 90°</button>
+                    <button class="btn btn-tiny" data-rel="-90">逆 90°</button>
+                    <button class="btn btn-tiny" data-rel="360">顺 360°</button>
+                    <button class="btn btn-tiny" data-rel="-360">逆 360°</button>
+                  </div>
+                </div>
+                <div class="preset-row">
+                  <span class="preset-label">位置微调</span>
+                  <div class="preset-buttons">
+                    <button class="btn btn-tiny" type="button" data-nudge="-0.1" title="目标减小 0.1 rad">−0.1</button>
+                    <button class="btn btn-tiny" type="button" data-nudge="-0.01" title="目标减小 0.01 rad">−0.01</button>
+                    <button class="btn btn-tiny" type="button" data-nudge="0.01" title="目标增大 0.01 rad">+0.01</button>
+                    <button class="btn btn-tiny" type="button" data-nudge="0.1" title="目标增大 0.1 rad">+0.1</button>
+                  </div>
+                </div>
+              </section>
+              </div>
+              <section class="tuning" aria-labelledby="position-tuning-title">
+                <h4 id="position-tuning-title">运动参数</h4>
+                <div class="field-grid slider-fields">
+                  <label class="field">
+                    <span>最大力矩 <b id="pos-tmax-label">0.30</b> N·m</span>
+                    <input id="pos-tmax" type="range" min="0.05" max="1.5" step="0.05" value="0.3" />
+                  </label>
+                  <label class="field">
+                    <span>回位刚度 Kp <b id="pos-kp-label">2.0</b></span>
+                    <input id="pos-kp" type="range" min="0.5" max="5" step="0.1" value="2" />
+                  </label>
+                  <label class="field">
+                    <span>阻尼 Kd <b id="pos-kd-label">0.80</b></span>
+                    <input id="pos-kd" type="range" min="0" max="2" step="0.05" value="0.8" />
+                  </label>
+                </div>
+              </section>
+            </div>
+
+            <div class="mode-fields" data-mode="velocity" hidden>
+              <div class="field">
+                <div class="slider-label">
+                  <label for="vel-spd"><span>目标速度 <span class="velocity-value"><b id="vel-spd-label" class="stable-number">0.00</b> rad/s</span> · <span class="velocity-value"><b id="vel-rpm-label" class="stable-number">0.0</b> rpm</span></span></label>
+                  <button class="btn btn-tiny" id="vel-zero" type="button">归零</button>
+                </div>
+                <input id="vel-spd" type="range" min="-4" max="4" step="0.1" value="0" />
+              </div>
+              <section class="tuning" aria-labelledby="velocity-tuning-title">
+                <h4 id="velocity-tuning-title">运动参数</h4>
+                <div class="field-grid slider-fields">
+                  <label class="field">
+                    <span>阻尼 Kd <b id="vel-kd-label">0.60</b></span>
+                    <input id="vel-kd" type="range" min="0.05" max="2" step="0.05" value="0.6" />
+                  </label>
+                  <label class="field">
+                    <span>最大力矩 <b id="vel-tmax-label">0.50</b> N·m</span>
+                    <input id="vel-tmax" type="range" min="0.05" max="1.5" step="0.05" value="0.5" />
+                  </label>
+                </div>
+              </section>
+            </div>
+
+            <div class="mode-fields" data-mode="manual" hidden>
+              <div class="field-grid">
+                <label class="field">
+                  <span>目标位置 rad</span>
+                  <input id="man-pos" type="number" step="0.01" value="0" />
+                </label>
+                <label class="field">
+                  <span>速度前馈 rad/s</span>
+                  <input id="man-spd" type="number" step="0.1" value="0" />
+                </label>
+                <label class="field">
+                  <span>力矩前馈 N·m</span>
+                  <input id="man-tor" type="number" step="0.05" value="0" />
+                </label>
+                <label class="field">
+                  <span>刚度 Kp</span>
+                  <input id="man-kp" type="number" step="1" value="15" />
+                </label>
+                <label class="field">
+                  <span>阻尼 Kd</span>
+                  <input id="man-kd" type="number" step="0.05" value="0.3" />
+                </label>
+              </div>
+            </div>
+
+                  <div class="control-hints">
+                    <p id="mode-hint" class="hint"></p>
+                    <p id="target-state" class="hint" role="status">使能后点击「更新控制目标」。</p>
+                  </div>
+                </div>
+                <div class="control-footer">
+                  <div class="motion-options" role="group" aria-label="运行操作">
+                    <div class="motion-segment" role="group" aria-label="目标更新方式">
+                      <button id="update-manual" type="button" aria-pressed="false">单次更新</button>
+                      <button id="update-auto" type="button" aria-pressed="true">自动更新</button>
+                    </div>
+                    <button id="apply-target" class="btn btn-primary" type="button" disabled>更新控制目标</button>
+                  </div>
+                </div>
+              </section>
+              <section class="card chart-card">
+                <div class="monitor-heading chart-header">
+                  <h2>状态曲线</h2>
+                  <div id="plot-window" class="motion-segment chart-window-segment" role="group" aria-label="曲线时间窗口">
+                    <button type="button" data-seconds="30" aria-pressed="true">30 s</button>
+                    <button type="button" data-seconds="60" aria-pressed="false">60 s</button>
+                    <button type="button" data-seconds="120" aria-pressed="false">120 s</button>
+                  </div>
+                </div>
+                <div class="chart-tools">
+                  <p id="plot-status" class="muted" role="status" hidden></p>
+                  <div id="plot-series" class="chart-key" role="group" aria-label="曲线显示"></div>
+                </div>
+                <div class="telemetry-stage">
+                  <div class="chart-surface">
+                    <canvas id="plot" width="720" height="260" role="img" aria-label="最近 30 秒状态曲线"></canvas>
+                    <div id="plot-empty" class="chart-empty">等待设备反馈</div>
+                    <div id="plot-tooltip" class="chart-tooltip" hidden></div>
+                  </div>
+                </div>
+              </section>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+    <div hidden>
+      <p id="connection-fault" hidden></p>
+      <p id="port-conflict-note">多个同型号串口已获授权。打开「详情 → 总线诊断」可移除其他同型号串口的授权，保留刚选择的端口。</p>
+      <p id="dup-warning" hidden>发现疑似重号。请逐台核对设备 ID。</p>
+      <p id="scan-warning" hidden></p>
+      <p id="mode-warn" hidden></p>
+      <p id="latest-notice" data-level="info">等待连接</p>
+    </div>
+    <dialog id="id-change-dialog" class="console-dialog" aria-labelledby="id-change-title">
+      <div class="card-head">
+        <h3 id="id-change-title">修改设备 ID</h3>
+        <button id="close-id-change" class="btn" type="button">关闭</button>
+      </div>
+      <form id="id-change-form">
+        <p id="id-target-label">目标 ID</p>
+        <div id="id-options" class="id-options" role="group" aria-labelledby="id-target-label"></div>
+        <label class="id-confirmation"><input id="id-unloaded" type="checkbox" required />我确认待改号舵机的输出轴无负载</label>
+        <p class="hint">保存时，选中的舵机会重启。请保持供电和串口连接，直到核验完成。</p>
+        <button class="btn btn-primary" type="submit">写入并核验</button>
+      </form>
+      <p id="id-change-result" role="status" aria-live="polite"></p>
+    </dialog>
+    <script type="module" src="./assets/app.mjs"></script>
+  </body>
+</html>
